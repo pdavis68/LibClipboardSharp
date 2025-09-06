@@ -31,7 +31,7 @@ This wrapper requires the native `libclipboard` shared library to be available:
 - **Linux**: `libclipboard.so` or `liblibclipboard.so`
 - **macOS**: `libclipboard.dylib` or `liblibclipboard.dylib`
 
-Place the appropriate binary in your application's output directory or ensure it's in the system's library search path.
+You will need to build libclipboard locally and then place the appropriate binary in your application's output directory or ensure it's in the system's library search path.
 
 ## Usage Examples
 
