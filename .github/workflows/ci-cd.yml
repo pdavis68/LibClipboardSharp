@@ -213,7 +213,7 @@ jobs:
           if [ -f "$package" ]; then
             echo "Pushing package: $package"
             # Run push on a single logical line to avoid shell continuation issues in runners
-            dotnet nuget push "$package" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate --verbosity normal
+            dotnet nuget push "$package" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
             echo "Successfully pushed: $package"
           fi
         done
