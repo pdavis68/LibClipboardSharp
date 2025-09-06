@@ -80,7 +80,12 @@ jobs:
       run: |
         if [[ $GITHUB_REF == refs/tags/v* ]]; then
           VERSION=${GITHUB_REF#refs/tags/v}
+          PACKAGE_VERSION=$VERSION
+          # For assembly version, extract only the numeric part (major.minor.patch.revision)
+          ASSEMBLY_VERSION=$(echo $VERSION | sed -E 's/^([0-9]+\.[0-9]+\.[0-9]+).*$/\1.0/')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "assembly_version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
           echo "is_release=true" >> $GITHUB_OUTPUT
           
           # Check if this is a pre-release (contains alpha, beta, rc, or has a dash)
@@ -91,12 +96,18 @@ jobs:
           fi
         else
           # Use timestamp for main branch builds
-          VERSION="1.0.0-ci.$(date +%Y%m%d%H%M%S)"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          PACKAGE_VERSION="1.0.0-ci.$TIMESTAMP"
+          # Assembly version must be numeric only (major.minor.build.revision)
+          ASSEMBLY_VERSION="1.0.0.$(($(date +%s) % 65535))"
+          echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "assembly_version=$ASSEMBLY_VERSION" >> $GITHUB_OUTPUT
           echo "is_release=false" >> $GITHUB_OUTPUT
           echo "is_prerelease=false" >> $GITHUB_OUTPUT
         fi
-        echo "Detected version: $VERSION"
+        echo "Detected package version: $PACKAGE_VERSION"
+        echo "Detected assembly version: $ASSEMBLY_VERSION"
 
     - name: Restore dependencies
       run: dotnet restore ${{ env.SOLUTION_PATH }}
@@ -113,9 +124,9 @@ jobs:
             --runtime $platform \
             --self-contained false \
             --output "./publish/$platform" \
-            -p:Version=${{ steps.version.outputs.version }} \
-            -p:AssemblyVersion=${{ steps.version.outputs.version }} \
-            -p:FileVersion=${{ steps.version.outputs.version }}
+            -p:Version=${{ steps.version.outputs.package_version }} \
+            -p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} \
+            -p:FileVersion=${{ steps.version.outputs.assembly_version }}
         done
 
     - name: Pack NuGet package
@@ -124,8 +135,10 @@ jobs:
           --configuration Release \
           --no-build \
           --output ./nupkg \
-          -p:PackageVersion=${{ steps.version.outputs.version }} \
-          -p:Version=${{ steps.version.outputs.version }}
+          -p:PackageVersion=${{ steps.version.outputs.package_version }} \
+          -p:Version=${{ steps.version.outputs.package_version }} \
+          -p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} \
+          -p:FileVersion=${{ steps.version.outputs.assembly_version }}
 
     - name: Upload NuGet package artifact
       uses: actions/upload-artifact@v4
