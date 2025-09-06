@@ -58,6 +58,22 @@ jobs:
         run: |
           dotnet build --configuration Release --no-restore
 
+      # Pack and upload package only on one matrix runner to avoid duplicate artifacts
+      - name: Pack NuGet package (CI runner)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          echo "Packing project for artifact upload"
+          dotnet pack ./LibClipboardSharp.csproj --configuration Release -o artifacts /p:PackageOutputPath=artifacts
+
+      - name: Upload package artifact (from CI)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkg
+          path: artifacts/*.nupkg
+
       - name: Upload test results (optional)
         if: always()
         uses: actions/upload-artifact@v4
