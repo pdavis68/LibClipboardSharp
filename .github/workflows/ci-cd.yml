@@ -131,6 +131,7 @@ jobs:
 
     - name: Pack NuGet package
       run: |
+        mkdir -p ./nupkg
         dotnet pack ${{ env.PROJECT_PATH }} \
           --configuration Release \
           --output ./nupkg \
@@ -138,6 +139,10 @@ jobs:
           -p:Version=${{ steps.version.outputs.package_version }} \
           -p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} \
           -p:FileVersion=${{ steps.version.outputs.assembly_version }}
+        
+        # List the contents to verify the package was created
+        echo "Contents of ./nupkg directory:"
+        ls -la ./nupkg/
 
     - name: Upload NuGet package artifact
       uses: actions/upload-artifact@v4
@@ -154,6 +159,17 @@ jobs:
     # Publish to NuGet.org (runs for both main branch and tags)
     - name: Publish to NuGet
       run: |
+        # Verify the package exists before attempting to push
+        if [ ! -d "./nupkg" ] || [ -z "$(ls -A ./nupkg)" ]; then
+          echo "Error: No NuGet packages found in ./nupkg directory"
+          echo "Directory contents:"
+          ls -la ./
+          exit 1
+        fi
+        
+        echo "Found packages to push:"
+        ls -la ./nupkg/
+        
         dotnet nuget push ./nupkg/*.nupkg \
           --api-key ${{ secrets.NUGET_API_KEY }} \
           --source https://api.nuget.org/v3/index.json \
