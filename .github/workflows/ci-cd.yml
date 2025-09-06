@@ -64,8 +64,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p artifacts
-          echo "Packing project for artifact upload"
-          dotnet pack ./LibClipboardSharp.csproj --configuration Release -o artifacts /p:PackageOutputPath=artifacts
+          echo "Packing project for artifact upload (diagnostic)"
+          # Capture verbose output so we can see where the package is written (or why none is written)
+          dotnet pack ./LibClipboardSharp.csproj --configuration Release -o artifacts /p:PackageOutputPath=artifacts --verbosity diagnostic 2>&1 | tee pack.log || true
+          echo "--- pack log (last 200 lines) ---"
+          tail -n 200 pack.log || true
+          echo "--- listing artifacts/ ---"
+          ls -la artifacts || true
+          echo "--- find any .nupkg in the repo ---"
+          find . -type f -name '*.nupkg' -not -path './obj/*' -not -path '*/obj/*' -print -ls || true
 
       - name: Upload package artifact (from CI)
         if: matrix.os == 'ubuntu-latest'
