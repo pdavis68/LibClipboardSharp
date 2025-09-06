@@ -141,6 +141,17 @@ jobs:
             done
           fi
 
+          echo "--- pack: show pack output and search for any .nupkg files ---"
+          # If dotnet pack wrote to artifacts, list it. Also search repo for any .nupkg
+          echo "Contents of artifacts/ after pack:"
+          ls -la artifacts || true
+
+          echo "Searching repository for any .nupkg files (excluding obj)..."
+          find . -type f -name '*.nupkg' -not -path './obj/*' -not -path '*/obj/*' -print -ls || true
+
+          echo "Listing bin/**/Release directories (common pack output):"
+          ls -laR bin || true
+
       - name: List created packages
         run: |
           echo "Checking artifacts for .nupkg files"
@@ -153,6 +164,8 @@ jobs:
             echo "Failing the job so missing package production is visible." >&2
             exit 1
           fi
+
+      
 
       - name: Push package to nuget.org
         env:
