@@ -54,7 +54,7 @@ jobs:
       run: dotnet build ${{ env.SOLUTION_PATH }} --no-restore --configuration Release
 
     - name: Run tests
-      run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --configuration Release --verbosity normal
+      run: dotnet test ${{ env.SOLUTION_PATH }} --no-build --configuration Release
 
   # Continuous Deployment Job - runs on main branch pushes and tags
   cd:
@@ -151,7 +151,6 @@ jobs:
           --configuration Release \
           --no-build \
           --output ./nupkg \
-          --verbosity normal \
           -p:IsPackable=true \
           -p:IncludeSymbols=true \
           -p:PackageVersion=${{ steps.version.outputs.package_version }} \
@@ -217,7 +216,6 @@ jobs:
               --api-key ${{ secrets.NUGET_API_KEY }} \
               --source https://api.nuget.org/v3/index.json \
               --skip-duplicate \
-              --verbosity normal
             echo "Successfully pushed: $package"
           fi
         done

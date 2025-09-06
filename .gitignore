@@ -335,3 +335,5 @@ runtimes/osx-x64/native/*.dylib
 *.swp
 *.swo
 *~
+
+pete_notes.md
