@@ -14,6 +14,12 @@ on:
   # Allow manual workflow dispatch for testing
   workflow_dispatch:
 
+# Grant workflow the minimal permissions needed to create releases and upload release assets.
+# 'contents: write' is required to create releases and upload release assets using GITHUB_TOKEN.
+permissions:
+  contents: write
+  packages: write
+
 env:
   DOTNET_VERSION: '8.0.x'
   PROJECT_PATH: './LibClipboardSharp.csproj'
