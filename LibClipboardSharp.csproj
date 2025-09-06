@@ -10,6 +10,8 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <PackageId>LibClipboardSharp</PackageId>
     <PackageVersion>1.0.0</PackageVersion>
+  <!-- Include the repository README in the generated NuGet package so NuGet.org shows it on the package page -->
+  <PackageReadmeFile>README.md</PackageReadmeFile>
     <Authors>Your Name</Authors>
     <Description>A safe, idiomatic C# wrapper for the libclipboard cross-platform clipboard library</Description>
     <PackageTags>clipboard;cross-platform;native;interop</PackageTags>
@@ -22,6 +24,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Ensure README.md is included in the NuGet package root so nuget.org can display it -->
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <!-- Prevent SDK-style projects from implicitly including test sources located in the Tests/ folder
