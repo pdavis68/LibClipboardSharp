@@ -212,11 +212,11 @@ jobs:
         for package in ./nupkg/*.nupkg; do
           if [ -f "$package" ]; then
             echo "Pushing package: $package"
-            dotnet nuget push "$package" \
-              --api-key ${{ secrets.NUGET_API_KEY }} \
-              --source https://api.nuget.org/v3/index.json \
-              --skip-duplicate \
-            echo "Successfully pushed: $package"
+              dotnet nuget push "$package" \
+                --api-key ${{ secrets.NUGET_API_KEY }} \
+                --source https://api.nuget.org/v3/index.json \
+                --skip-duplicate --verbosity normal
+              echo "Successfully pushed: $package"
           fi
         done
         
