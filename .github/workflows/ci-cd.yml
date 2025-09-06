@@ -198,6 +198,7 @@ jobs:
 
     # Publish to NuGet.org (runs for both main branch and tags)
     - name: Publish to NuGet
+      if: steps.version.outputs.is_release == 'true'
       run: |
         echo "=== Starting NuGet publish process ==="
         
