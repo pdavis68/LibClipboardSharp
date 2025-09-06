@@ -127,9 +127,9 @@ jobs:
               echo "Packing $projfile from $(pwd)"
               dotnet restore "$projfile"
               if [ -n "${VERSION}" ]; then
-                dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageVersion=${VERSION} /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
+                dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageVersion=${VERSION} /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts" --verbosity diagnostic | tee "$GITHUB_WORKSPACE/pack.log"
               else
-                dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
+                dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts" --verbosity diagnostic | tee "$GITHUB_WORKSPACE/pack.log"
               fi
             else
               echo "No PROJECT env var set, scanning for .csproj files to pack."
@@ -146,9 +146,9 @@ jobs:
                 echo "Packing $projfile from $(pwd)"
                 dotnet restore "$projfile"
                 if [ -n "${VERSION}" ]; then
-                  dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageVersion=${VERSION} /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
+                  dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageVersion=${VERSION} /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts" --verbosity diagnostic | tee "$GITHUB_WORKSPACE/pack.log"
                 else
-                  dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
+                  dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts" --verbosity diagnostic | tee "$GITHUB_WORKSPACE/pack.log"
                 fi
                 cd "$GITHUB_WORKSPACE"
               done
@@ -157,6 +157,12 @@ jobs:
             find . -type f -name '*.nupkg' -print -ls || true
             echo "--- Artifacts directory contents ---"
             ls -la "$GITHUB_WORKSPACE/artifacts" || true
+
+      - name: Upload pack log
+        uses: actions/upload-artifact@v4
+        with:
+          name: pack-log
+          path: pack.log
 
       - name: List created packages
         run: |
