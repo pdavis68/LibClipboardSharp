@@ -133,7 +133,6 @@ jobs:
       run: |
         dotnet pack ${{ env.PROJECT_PATH }} \
           --configuration Release \
-          --no-build \
           --output ./nupkg \
           -p:PackageVersion=${{ steps.version.outputs.package_version }} \
           -p:Version=${{ steps.version.outputs.package_version }} \
@@ -152,9 +151,8 @@ jobs:
         name: build-artifacts
         path: ./publish/
 
-    # Publish to NuGet.org (only on version tags)
+    # Publish to NuGet.org (runs for both main branch and tags)
     - name: Publish to NuGet
-      if: steps.version.outputs.is_release == 'true'
       run: |
         dotnet nuget push ./nupkg/*.nupkg \
           --api-key ${{ secrets.NUGET_API_KEY }} \
