@@ -24,6 +24,13 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
   </ItemGroup>
 
+  <!-- Prevent SDK-style projects from implicitly including test sources located in the Tests/ folder
+       The default SDK glob includes all .cs files under the project directory; remove test sources so
+       they are only compiled by the test project. -->
+  <ItemGroup>
+    <Compile Remove="Tests\**\*.cs" />
+  </ItemGroup>
+
   <!-- Include native libraries in NuGet package -->
   <ItemGroup>
     <None Include="runtimes\win-x64\native\libclipboard.dll" Pack="true" PackagePath="runtimes\win-x64\native\libclipboard.dll" Condition="Exists('runtimes\win-x64\native\libclipboard.dll')" />
