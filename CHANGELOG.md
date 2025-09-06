@@ -29,6 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic native library loading with platform detection
 
 ### Dependencies
-- .NET 6.0+
+- .NET 8.0+
 - Microsoft.Extensions.Logging.Abstractions 8.0.0
 - Native libclipboard library (runtime dependency)

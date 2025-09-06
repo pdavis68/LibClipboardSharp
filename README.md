@@ -10,7 +10,7 @@ A safe, idiomatic C# wrapper for the [jtanx/libclipboard](https://github.com/jta
 - **Async clipboard monitoring**: Event-driven change detection with cancellation support
 - **Robust error handling**: Specific exceptions with detailed error information
 - **Logging integration**: Uses `Microsoft.Extensions.Logging` for diagnostics
-- **Modern .NET**: Targets .NET 6.0+ with nullable reference types
+- **Modern .NET**: Targets .NET 8.0+ with nullable reference types
 
 ## Installation
 
