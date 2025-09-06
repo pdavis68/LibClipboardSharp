@@ -18,7 +18,7 @@ on:
 jobs:
   # Continuous Integration: runs on PRs and on push to main to ensure gate for CD
   ci:
-    name: CI - build & test
+    name: CI - build
     runs-on: ${{ matrix.os }}
     if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     strategy:
@@ -74,21 +74,6 @@ jobs:
           echo "--- find any .nupkg in the repo ---"
           find . -type f -name '*.nupkg' -not -path './obj/*' -not -path '*/obj/*' -print -ls || true
 
-      - name: Upload package artifact (from CI)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: nupkg
-          path: artifacts/*.nupkg
-
-      - name: Upload test results (optional)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.os }}
-          path: |
-            **/TestResults || true
-
   # Continuous Deployment: pack and push NuGet when code is pushed to main
   cd:
     name: CD - pack & push NuGet
@@ -132,48 +117,46 @@ jobs:
 
       - name: Pack NuGet package
         run: |
-          set -euo pipefail
-          echo "Packing project(s) into artifacts/"
-          mkdir -p artifacts
-
-          # If PROJECT is set by the earlier step, pack that single project. Otherwise, try to pack all top-level *.csproj files.
-          if [ -n "${PROJECT:-}" ]; then
-            echo "Packing specified project: $PROJECT"
-            dotnet restore "$PROJECT"
-            if [ -n "${VERSION}" ]; then
-              dotnet pack "$PROJECT" --configuration Release -o artifacts /p:PackageVersion=${VERSION} /p:PackageOutputPath=artifacts
-            else
-              dotnet pack "$PROJECT" --configuration Release -o artifacts /p:PackageOutputPath=artifacts
-            fi
-          else
-            echo "No PROJECT env var set, scanning for .csproj files to pack."
-            # Find csproj files but prefer ones under src/ or top-level
-            mapfile -t CS_PROJS < <(find . -maxdepth 3 -type f -name '*.csproj' -not -path './obj/*' | sort)
-            if [ ${#CS_PROJS[@]} -eq 0 ]; then
-              echo "No .csproj files found to pack." >&2
-              exit 1
-            fi
-            for p in "${CS_PROJS[@]}"; do
-              echo "Packing $p"
-              dotnet restore "$p"
+            set -euo pipefail
+            # Always cd to the project directory before packing
+            if [ -n "${PROJECT:-}" ]; then
+              projdir=$(dirname "$PROJECT")
+              projfile=$(basename "$PROJECT")
+              cd "$projdir"
+              mkdir -p "$GITHUB_WORKSPACE/artifacts"
+              echo "Packing $projfile from $(pwd)"
+              dotnet restore "$projfile"
               if [ -n "${VERSION}" ]; then
-                dotnet pack "$p" --configuration Release -o artifacts /p:PackageVersion=${VERSION} /p:PackageOutputPath=artifacts
+                dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageVersion=${VERSION} /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
               else
-                dotnet pack "$p" --configuration Release -o artifacts /p:PackageOutputPath=artifacts
+                dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
               fi
-            done
-          fi
-
-          echo "--- pack: show pack output and search for any .nupkg files ---"
-          # If dotnet pack wrote to artifacts, list it. Also search repo for any .nupkg
-          echo "Contents of artifacts/ after pack:"
-          ls -la artifacts || true
-
-          echo "Searching repository for any .nupkg files (excluding obj)..."
-          find . -type f -name '*.nupkg' -not -path './obj/*' -not -path '*/obj/*' -print -ls || true
-
-          echo "Listing bin/**/Release directories (common pack output):"
-          ls -laR bin || true
+            else
+              echo "No PROJECT env var set, scanning for .csproj files to pack."
+              mapfile -t CS_PROJS < <(find . -maxdepth 3 -type f -name '*.csproj' -not -path './obj/*' | sort)
+              if [ ${#CS_PROJS[@]} -eq 0 ]; then
+                echo "No .csproj files found to pack." >&2
+                exit 1
+              fi
+              for p in "${CS_PROJS[@]}"; do
+                projdir=$(dirname "$p")
+                projfile=$(basename "$p")
+                cd "$projdir"
+                mkdir -p "$GITHUB_WORKSPACE/artifacts"
+                echo "Packing $projfile from $(pwd)"
+                dotnet restore "$projfile"
+                if [ -n "${VERSION}" ]; then
+                  dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageVersion=${VERSION} /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
+                else
+                  dotnet pack "$projfile" --configuration Release -o "$GITHUB_WORKSPACE/artifacts" /p:PackageOutputPath="$GITHUB_WORKSPACE/artifacts"
+                fi
+                cd "$GITHUB_WORKSPACE"
+              done
+            fi
+            echo "--- After pack: list all .nupkg files in repo ---"
+            find . -type f -name '*.nupkg' -print -ls || true
+            echo "--- Artifacts directory contents ---"
+            ls -la "$GITHUB_WORKSPACE/artifacts" || true
 
       - name: List created packages
         run: |
