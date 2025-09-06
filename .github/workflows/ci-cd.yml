@@ -131,18 +131,53 @@ jobs:
 
     - name: Pack NuGet package
       run: |
+        echo "=== Starting NuGet pack process ==="
+        
+        # Ensure clean output directory
+        rm -rf ./nupkg
         mkdir -p ./nupkg
+        
+        # First build the project explicitly
+        echo "Building project for packing..."
+        dotnet build ${{ env.PROJECT_PATH }} \
+          --configuration Release \
+          -p:Version=${{ steps.version.outputs.package_version }} \
+          -p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} \
+          -p:FileVersion=${{ steps.version.outputs.assembly_version }}
+        
+        # Now pack with verbose output and force packable
+        echo "Creating NuGet package..."
         dotnet pack ${{ env.PROJECT_PATH }} \
           --configuration Release \
+          --no-build \
           --output ./nupkg \
+          --verbosity normal \
+          -p:IsPackable=true \
+          -p:IncludeSymbols=true \
           -p:PackageVersion=${{ steps.version.outputs.package_version }} \
           -p:Version=${{ steps.version.outputs.package_version }} \
           -p:AssemblyVersion=${{ steps.version.outputs.assembly_version }} \
           -p:FileVersion=${{ steps.version.outputs.assembly_version }}
         
-        # List the contents to verify the package was created
+        # Verify the package was created
+        echo "=== Pack completed, checking results ==="
         echo "Contents of ./nupkg directory:"
         ls -la ./nupkg/
+        
+        # Check if any .nupkg files exist with a more reliable test
+        NUPKG_FILES=$(find ./nupkg -name "*.nupkg" -type f | wc -l)
+        echo "Found $NUPKG_FILES .nupkg file(s)"
+        
+        if [ "$NUPKG_FILES" -eq 0 ]; then
+          echo "ERROR: No .nupkg files were created!"
+          echo "Checking project properties..."
+          dotnet msbuild ${{ env.PROJECT_PATH }} -p:Configuration=Release -t:GetTargetPath -v:normal
+          echo "Searching for packages in other locations..."
+          find . -name "*.nupkg" -type f 2>/dev/null || echo "No .nupkg files found anywhere"
+          exit 1
+        fi
+        
+        echo "=== NuGet package creation successful ==="
 
     - name: Upload NuGet package artifact
       uses: actions/upload-artifact@v4
@@ -159,21 +194,35 @@ jobs:
     # Publish to NuGet.org (runs for both main branch and tags)
     - name: Publish to NuGet
       run: |
-        # Verify the package exists before attempting to push
-        if [ ! -d "./nupkg" ] || [ -z "$(ls -A ./nupkg)" ]; then
-          echo "Error: No NuGet packages found in ./nupkg directory"
-          echo "Directory contents:"
-          ls -la ./
+        echo "=== Starting NuGet publish process ==="
+        
+        # Double-check the package exists
+        echo "Checking for NuGet packages..."
+        ls -la ./nupkg/
+        
+        # Count the .nupkg files
+        PACKAGE_COUNT=$(find ./nupkg -name "*.nupkg" | wc -l)
+        echo "Found $PACKAGE_COUNT .nupkg file(s)"
+        
+        if [ "$PACKAGE_COUNT" -eq 0 ]; then
+          echo "ERROR: No .nupkg files found!"
           exit 1
         fi
         
-        echo "Found packages to push:"
-        ls -la ./nupkg/
+        # Push each package individually with full error reporting
+        for package in ./nupkg/*.nupkg; do
+          if [ -f "$package" ]; then
+            echo "Pushing package: $package"
+            dotnet nuget push "$package" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate \
+              --verbosity normal
+            echo "Successfully pushed: $package"
+          fi
+        done
         
-        dotnet nuget push ./nupkg/*.nupkg \
-          --api-key ${{ secrets.NUGET_API_KEY }} \
-          --source https://api.nuget.org/v3/index.json \
-          --skip-duplicate
+        echo "=== NuGet publish completed successfully ==="
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
