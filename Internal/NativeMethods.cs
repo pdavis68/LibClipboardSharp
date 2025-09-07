@@ -41,24 +41,76 @@ namespace LibClipboard.Core.Internal
         {
             if (libraryName == LibName)
             {
+                IntPtr handle;
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    if (NativeLibrary.TryLoad($"{LibName}.dll", assembly, searchPath, out IntPtr handle))
+                    // Default
+                    if (NativeLibrary.TryLoad($"{LibName}.dll", assembly, searchPath, out handle))
                         return handle;
+                    // Common Windows system paths
+                    string[] winPaths = {
+                        $"C:/Windows/System32/{LibName}.dll",
+                        $"C:/Windows/SysWOW64/{LibName}.dll"
+                    };
+                    foreach (var path in winPaths)
+                    {
+                        if (NativeLibrary.TryLoad(path, assembly, searchPath, out handle))
+                            return handle;
+                    }
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    if (NativeLibrary.TryLoad($"lib{LibName}.so", assembly, searchPath, out IntPtr handle))
+                    // Default
+                    if (NativeLibrary.TryLoad($"lib{LibName}.so", assembly, searchPath, out handle))
                         return handle;
                     if (NativeLibrary.TryLoad($"{LibName}.so", assembly, searchPath, out handle))
                         return handle;
+                    // Common Linux library paths
+                    string[] linuxPaths = {
+                        $"/usr/local/lib/lib{LibName}.so",
+                        $"/usr/lib/lib{LibName}.so",
+                        $"/usr/local/lib/{LibName}.so",
+                        $"/usr/lib/{LibName}.so"
+                    };
+                    foreach (var path in linuxPaths)
+                    {
+                        if (NativeLibrary.TryLoad(path, assembly, searchPath, out handle))
+                            return handle;
+                    }
+                    // LD_LIBRARY_PATH
+                    var ldLibraryPath = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH");
+                    if (!string.IsNullOrEmpty(ldLibraryPath))
+                    {
+                        foreach (var dir in ldLibraryPath.Split(':'))
+                        {
+                            string fullPath1 = System.IO.Path.Combine(dir, $"lib{LibName}.so");
+                            string fullPath2 = System.IO.Path.Combine(dir, $"{LibName}.so");
+                            if (NativeLibrary.TryLoad(fullPath1, assembly, searchPath, out handle))
+                                return handle;
+                            if (NativeLibrary.TryLoad(fullPath2, assembly, searchPath, out handle))
+                                return handle;
+                        }
+                    }
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    if (NativeLibrary.TryLoad($"lib{LibName}.dylib", assembly, searchPath, out IntPtr handle))
+                    // Default
+                    if (NativeLibrary.TryLoad($"lib{LibName}.dylib", assembly, searchPath, out handle))
                         return handle;
                     if (NativeLibrary.TryLoad($"{LibName}.dylib", assembly, searchPath, out handle))
                         return handle;
+                    // Common macOS library paths
+                    string[] macPaths = {
+                        $"/usr/local/lib/lib{LibName}.dylib",
+                        $"/usr/lib/lib{LibName}.dylib",
+                        $"/usr/local/lib/{LibName}.dylib",
+                        $"/usr/lib/{LibName}.dylib"
+                    };
+                    foreach (var path in macPaths)
+                    {
+                        if (NativeLibrary.TryLoad(path, assembly, searchPath, out handle))
+                            return handle;
+                    }
                 }
             }
             return IntPtr.Zero;
